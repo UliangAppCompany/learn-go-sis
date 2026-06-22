@@ -45,3 +45,29 @@ jobs:
         run: sqlc generate 
       - name: Fail if generated code is stale 
         run: git diff --exit-code
+
+  deploy: 
+    needs: [build-test, sqlc-drift] 
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: ./go.sum 
+      - name: Build static binary 
+        working-directory: . 
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o sis ./cmd/server 
+      - name: Ship 
+        env: 
+          SSH_KEY:  ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }} 
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+        run: | 
+          install -m600 /dev/stdin key <<< "$SSH_KEY"
+          ssh-keyscan -H "$SSH_HOST" >> known_hosts 2>/dev/null 
+          TS=$(date + %Y%m%d-%H%M%S)
+          SSHOPTS="-i key -o UserKnownHostsFile=known_hosts"
+          scp $SSHOPTS ./sis "$SSH_USER@$SSH_HOST:/opt/sis/releases/sis-$TS"
+          ssh $SSHOPTS "$SSH_USER@$SSH_HOST" "sudo /opt/sis/deploy.sh sis-$TS" 
