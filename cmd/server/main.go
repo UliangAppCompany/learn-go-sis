@@ -143,9 +143,13 @@ func health(w http.ResponseWriter, r *http.Request) {
 
 func seedUser(queries *db.Queries, t string, userID int64, email string, plain string) {
 	ctx := context.Background()
+	if _, err := queries.GetUserByEmail(ctx, email); err == nil {
+		return
+	}
 	hashed_password, err := auth.HashPassword(plain)
 	if err != nil {
-		log.Fatalf("seed %s: %v", email, err)
+		slog.Error("seed user: hash", "email", email, "err", err)
+		return
 	}
 	err = queries.CreateUser(ctx, db.CreateUserParams{
 		TenantID:     t,
@@ -154,7 +158,7 @@ func seedUser(queries *db.Queries, t string, userID int64, email string, plain s
 		ID:           userID,
 	})
 	if err != nil {
-		log.Fatalf("seed user %s: %v", email, err)
+		slog.Error("seed user", "email", email, "err", err)
 	}
 }
 
