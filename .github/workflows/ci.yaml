@@ -67,7 +67,7 @@ jobs:
         run: | 
           install -m600 /dev/stdin key <<< "$SSH_KEY"
           ssh-keyscan -H "$SSH_HOST" >> known_hosts 2>/dev/null 
-          TS=$(date + %Y%m%d-%H%M%S)
+          REL="sis-${GITHUB_SHA::7}"
           SSHOPTS="-i key -o UserKnownHostsFile=known_hosts"
-          scp $SSHOPTS ./sis "$SSH_USER@$SSH_HOST:/opt/sis/releases/sis-$TS"
-          ssh $SSHOPTS "$SSH_USER@$SSH_HOST" "sudo /opt/sis/deploy.sh sis-$TS" 
+          scp $SSHOPTS ./sis "$SSH_USER@$SSH_HOST:/opt/sis/releases/$REL"
+          ssh $SSHOPTS "$SSH_USER@$SSH_HOST" "sudo /opt/sis/deploy.sh $REL" 
