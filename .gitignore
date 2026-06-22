@@ -1,3 +1,5 @@
 *.db 
 jar.txt 
 
+deploy_key
+deploy_key.pub
