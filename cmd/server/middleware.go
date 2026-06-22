@@ -8,7 +8,7 @@ import (
 
 type middleware func(http.Handler) http.Handler
 
-//chain wraps h with the given middleware. First listed runs outermost
+// chain wraps h with the given middleware. First listed runs outermost
 func chain(h http.Handler, m ...middleware) http.Handler {
 	for i := len(m) - 1; i >= 0; i-- {
 		h = m[i](h)
@@ -31,7 +31,7 @@ func recoverPanic(logger *slog.Logger) middleware {
 }
 
 type statusWriter struct {
-	http.ResponseWriter 
+	http.ResponseWriter
 	status int
 }
 
@@ -65,4 +65,3 @@ func limitBody(n int64) middleware {
 		})
 	}
 }
-
