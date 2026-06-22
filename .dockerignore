@@ -1,0 +1,7 @@
+.git 
+*.db 
+jar.txt 
+sis-linux
+Dockerfile 
+.dockerignore
+
