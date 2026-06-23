@@ -1,0 +1,30 @@
+# Template unit: one file, many instances. `sis@8080` and `sis@8081` are two
+# processes of the same binary; %i expands to the instance name (the port).
+# Enable both:  systemctl enable --now sis@8080 sis@8081
+[Unit]
+Description=SIS multi-tenant server (port %i)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sis
+Group=sis
+EnvironmentFile=/etc/sis/sis.env
+Environment=PORT=%i
+ExecStart=/opt/sis/current
+Restart=on-failure
+RestartSec=1
+
+# Hardening. No StateDirectory / ReadWritePaths: state lives in Postgres now,
+# so the process writes nothing to disk — the filesystem can stay read-only.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
