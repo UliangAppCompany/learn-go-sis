@@ -4,12 +4,16 @@
 
 package db
 
+import (
+	"time"
+)
+
 type Session struct {
-	Token     string `json:"token"`
-	TenantID  string `json:"tenant_id"`
-	UserID    int64  `json:"user_id"`
-	CreatedAt string `json:"created_at"`
-	ExpiresAt string `json:"expires_at"`
+	Token     string    `json:"token"`
+	TenantID  string    `json:"tenant_id"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type Student struct {

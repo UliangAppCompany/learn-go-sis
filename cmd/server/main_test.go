@@ -25,7 +25,7 @@ func (f fakeSessions) GetSession(ctx context.Context, token string) (db.Session,
 
 func TestRequireSession(t *testing.T) {
 	fake := fakeSessions{byToken: map[string]db.Session{
-		"good-token": {Token: "good-token", TenantID: "springfield", UserID: 1, ExpiresAt: time.Now().Add(time.Hour).UTC().Format(time.RFC3339)},
+		"good-token": {Token: "good-token", TenantID: "springfield", UserID: 1, ExpiresAt: time.Now().Add(time.Hour)},
 	}}
 	probe := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tid, _ := tenant.FromContext(r.Context())
@@ -53,7 +53,7 @@ func TestRequireSession(t *testing.T) {
 
 	t.Run("expired session -> 401", func(t *testing.T) {
 		fake := fakeSessions{byToken: map[string]db.Session{
-			"old": {Token: "old", TenantID: "springfield", ExpiresAt: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)},
+			"old": {Token: "old", TenantID: "springfield", ExpiresAt: time.Now().Add(-time.Hour)},
 		}}
 		h := requireSession(fake)(probe)
 		rec := httptest.NewRecorder()
