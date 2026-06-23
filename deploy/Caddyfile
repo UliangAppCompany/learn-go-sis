@@ -1,0 +1,12 @@
+sis.example.com {
+	# Two upstreams, one per instance. Caddy actively polls /healthz on each and
+	# routes only to healthy ones, so a restarting instance is skipped, not failed.
+	reverse_proxy 127.0.0.1:8080 127.0.0.1:8081 {
+		lb_policy        round_robin
+		lb_try_duration  2s        # if a chosen upstream is down, retry another within this window
+		health_uri       /healthz
+		health_interval  2s
+		health_timeout   1s
+		fail_duration    5s        # passive: eject an upstream that errors, auto-recover after this
+	}
+}
