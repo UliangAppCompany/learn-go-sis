@@ -7,23 +7,24 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createSession = `-- name: CreateSession :exec
-insert into sessions (token, tenant_id, user_id, created_at, expires_at) 
-values (?,?,?,?, ?)
+insert into sessions (token, tenant_id, user_id, created_at, expires_at)
+values ($1, $2, $3, $4, $5)
 `
 
 type CreateSessionParams struct {
-	Token     string `json:"token"`
-	TenantID  string `json:"tenant_id"`
-	UserID    int64  `json:"user_id"`
-	CreatedAt string `json:"created_at"`
-	ExpiresAt string `json:"expires_at"`
+	Token     string    `json:"token"`
+	TenantID  string    `json:"tenant_id"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createSession,
+	_, err := q.db.Exec(ctx, createSession,
 		arg.Token,
 		arg.TenantID,
 		arg.UserID,
@@ -34,8 +35,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const createStudent = `-- name: CreateStudent :exec
-insert into students (tenant_id, id, name, gpa) 
-values (?, ?,?,?)
+insert into students (tenant_id, id, name, gpa)
+values ($1, $2, $3, $4)
 `
 
 type CreateStudentParams struct {
@@ -46,7 +47,7 @@ type CreateStudentParams struct {
 }
 
 func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) error {
-	_, err := q.db.ExecContext(ctx, createStudent,
+	_, err := q.db.Exec(ctx, createStudent,
 		arg.TenantID,
 		arg.ID,
 		arg.Name,
@@ -57,7 +58,7 @@ func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) er
 
 const createUser = `-- name: CreateUser :exec
 insert into users (tenant_id, id, email, password_hash)
-values (?, ?, ?, ?)
+values ($1, $2, $3, $4)
 `
 
 type CreateUserParams struct {
@@ -68,7 +69,7 @@ type CreateUserParams struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser,
+	_, err := q.db.Exec(ctx, createUser,
 		arg.TenantID,
 		arg.ID,
 		arg.Email,
@@ -78,30 +79,30 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 }
 
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
-delete from sessions where expires_at <= ?
+delete from sessions where expires_at <= $1
 `
 
-func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiresAt string) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredSessions, expiresAt)
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiresAt time.Time) error {
+	_, err := q.db.Exec(ctx, deleteExpiredSessions, expiresAt)
 	return err
 }
 
 const deleteSession = `-- name: DeleteSession :exec
-delete from sessions where token = ?
+delete from sessions where token = $1
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, token string) error {
-	_, err := q.db.ExecContext(ctx, deleteSession, token)
+	_, err := q.db.Exec(ctx, deleteSession, token)
 	return err
 }
 
 const getSession = `-- name: GetSession :one
 select token, tenant_id, user_id, created_at, expires_at from sessions
-where token = ?
+where token = $1
 `
 
 func (q *Queries) GetSession(ctx context.Context, token string) (Session, error) {
-	row := q.db.QueryRowContext(ctx, getSession, token)
+	row := q.db.QueryRow(ctx, getSession, token)
 	var i Session
 	err := row.Scan(
 		&i.Token,
@@ -114,8 +115,8 @@ func (q *Queries) GetSession(ctx context.Context, token string) (Session, error)
 }
 
 const getStudent = `-- name: GetStudent :one
-select tenant_id, id, name, gpa from students 
-where tenant_id =? and id=?
+select tenant_id, id, name, gpa from students
+where tenant_id = $1 and id = $2
 `
 
 type GetStudentParams struct {
@@ -124,7 +125,7 @@ type GetStudentParams struct {
 }
 
 func (q *Queries) GetStudent(ctx context.Context, arg GetStudentParams) (Student, error) {
-	row := q.db.QueryRowContext(ctx, getStudent, arg.TenantID, arg.ID)
+	row := q.db.QueryRow(ctx, getStudent, arg.TenantID, arg.ID)
 	var i Student
 	err := row.Scan(
 		&i.TenantID,
@@ -136,12 +137,12 @@ func (q *Queries) GetStudent(ctx context.Context, arg GetStudentParams) (Student
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select tenant_id, id, email, password_hash from users 
-where email = ?
+select tenant_id, id, email, password_hash from users
+where email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.TenantID,
@@ -153,13 +154,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const listStudents = `-- name: ListStudents :many
-select tenant_id, id,name,gpa from students 
-where tenant_id = ?
+select tenant_id, id, name, gpa from students
+where tenant_id = $1
 order by id
 `
 
 func (q *Queries) ListStudents(ctx context.Context, tenantID string) ([]Student, error) {
-	rows, err := q.db.QueryContext(ctx, listStudents, tenantID)
+	rows, err := q.db.Query(ctx, listStudents, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,9 +177,6 @@ func (q *Queries) ListStudents(ctx context.Context, tenantID string) ([]Student,
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
